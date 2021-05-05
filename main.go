@@ -3,11 +3,12 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"github.com/davecgh/go-spew/spew"
 	"strconv"
 	"time"
 	"vaccineNotifier/src"
 
+	"github.com/davecgh/go-spew/spew"
+	"github.com/sfreiberg/gotwilio"
 	"github.com/sirupsen/logrus"
 )
 
@@ -73,6 +74,14 @@ func main() {
 				if s.MinAgeLimit < 45 {
 					centresWith18plus = append(centresWith18plus, c)
 					if s.AvailableCapacity > 0 {
+						err = notifyViaTwillio(src.CenterSessionDetails{
+							Session:      s,
+							Name:         c.Name,
+							Address:      c.Address,
+							StateName:    c.StateName,
+							DistrictName: c.DistrictName,
+						})
+						logrus.Errorf("unable to notify user: %v", err)
 						availableCenters = append(availableCenters, c)
 					}
 				}
@@ -86,5 +95,14 @@ func main() {
 		i += 1
 		retries = 0
 	}
+}
 
+func notifyViaTwillio(details src.CenterSessionDetails) error {
+	twilio := gotwilio.NewTwilioClient(twilioID, twilioSecret)
+	out, err := json.Marshal(details)
+	if err != nil {
+		panic(err)
+	}
+	_, _, err = twilio.SendSMS(fromPhone, toPhone, string(out), "", "")
+	return err
 }
