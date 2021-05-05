@@ -1,11 +1,11 @@
 package main
 
 import (
+	"covid-vaccine-notifier/src"
 	"encoding/json"
 	"flag"
 	"strconv"
 	"time"
-	"vaccineNotifier/src"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/sfreiberg/gotwilio"
@@ -19,6 +19,7 @@ const twilioID string = ""
 const twilioSecret string = ""
 const cowinAPi string = "https://cdn-api.co-vin.in/api/v2/appointment/sessions/calendarByDistrict"
 const maxRetry int = 5
+const waitSec time.Duration = 3
 
 func main() {
 	startDate := flag.String("s", time.Now().Format(DateFormat), "start date to run the script from")
@@ -60,7 +61,7 @@ func main() {
 				continue
 			}
 			retries += 1
-			time.Sleep(5 * time.Second)
+			time.Sleep(waitSec * time.Second)
 			continue
 		}
 		centers := src.CenterList{}
@@ -73,7 +74,7 @@ func main() {
 			for _, s := range c.Sessions {
 				if s.MinAgeLimit < 45 {
 					centresWith18plus = append(centresWith18plus, c)
-					if s.AvailableCapacity > 0 {
+					if s.AvailableCapacity > 3 {
 						err = notifyViaTwillio(src.CenterSessionDetails{
 							Session:      s,
 							Name:         c.Name,
@@ -91,7 +92,7 @@ func main() {
 		if len(availableCenters) > 0 {
 			spew.Dump(availableCenters)
 		}
-		time.Sleep(5 * time.Second)
+		time.Sleep(waitSec * time.Second)
 		i += 1
 		retries = 0
 	}
