@@ -23,11 +23,16 @@ const waitSec time.Duration = 3
 
 func main() {
 	startDate := flag.String("s", time.Now().Format(DateFormat), "start date to run the script from")
-	interval := flag.Int("i", 30, "number of days to look for")
+	interval := flag.Int("i", 5, "number of days to look for")
 	districtId := flag.Int("d", 294, "the id of the district to search for")
-
 	flag.Parse()
+	for true {
+		findSlots(startDate, interval, districtId)
+		time.Sleep(1 * time.Minute)
+	}
+}
 
+func findSlots(startDate *string, interval, districtId *int) {
 	logger := logrus.Logger{}
 	logger.Infof("looking from: %v for interval: %v", startDate, interval)
 
@@ -74,7 +79,7 @@ func main() {
 			for _, s := range c.Sessions {
 				if s.MinAgeLimit < 45 {
 					centresWith18plus = append(centresWith18plus, c)
-					if s.AvailableCapacity > 3 {
+					if s.AvailableCapacity > 1 {
 						err = notifyViaTwillio(src.CenterSessionDetails{
 							Session:      s,
 							Name:         c.Name,
