@@ -35,6 +35,13 @@ func main() {
 func findSlots(startDate *string, interval, districtId *int) {
 	logger := logrus.Logger{}
 	logger.Infof("looking from: %v for interval: %v", startDate, interval)
+	y, m, d := time.Now().Date()
+	loc, err := time.LoadLocation("Asia/Kolkata")
+	if err != nil {
+		logrus.Errorf("unable to load location: %v", err)
+		return
+	}
+	today := time.Date(y, m, d, 0, 0, 0, 0, loc)
 
 	var headers = map[string]string{
 		"authority":       "cdn-api.co-vin.in",
@@ -79,7 +86,12 @@ func findSlots(startDate *string, interval, districtId *int) {
 			for _, s := range c.Sessions {
 				if s.MinAgeLimit < 45 {
 					centresWith18plus = append(centresWith18plus, c)
-					if s.AvailableCapacity > 1 {
+					t, err := time.Parse(DateFormat, s.Date)
+					if err != nil {
+						logrus.Errorf("unable parse date: %v", err)
+						continue
+					}
+					if s.AvailableCapacity >= 1 && !t.Before(today) {
 						err = notifyViaTwillio(src.CenterSessionDetails{
 							Session:      s,
 							Name:         c.Name,
